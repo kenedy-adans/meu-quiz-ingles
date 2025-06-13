@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz de Vocabulário (Português para Inglês) - Versão 2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .quiz-container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .word-display {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a202c; /* Dark gray */
+            margin-bottom: 20px;
+        }
+        .options-container {
+            display: grid;
+            grid-template-columns: 1fr; /* Single column for mobile */
+            gap: 15px;
+        }
+        .option-button {
+            background-color: #4299e1; /* Blue */
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            border: none;
+            outline: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .option-button:hover {
+            background-color: #3182ce; /* Darker blue */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+        .option-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .option-button.correct {
+            background-color: #48bb78; /* Green */
+        }
+        .option-button.incorrect {
+            background-color: #ef4444; /* Red */
+        }
+        .feedback-message {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-top: 20px;
+            min-height: 30px; /* Reserve space for message */
+        }
+        .score-display {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2d3748; /* Gray-900 */
+            margin-top: 10px;
+        }
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .start-button, .restart-button, .stop-button, .nav-button {
+            background-color: #38b2ac; /* Teal */
+            color: white;
+            padding: 15px 20px; /* Adjusted padding for nav buttons */
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            border: none;
+            outline: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .stop-button {
+            background-color: #e53e3e; /* Red for stop button */
+        }
+        .start-button:hover, .restart-button:hover, .nav-button:hover {
+            background-color: #319795; /* Darker teal */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+        .stop-button:hover {
+            background-color: #c53030; /* Darker red */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+        .nav-buttons-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .incorrect-answers-list {
+            text-align: left;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0; /* Light border */
+        }
+        .incorrect-answers-list h3 {
+            font-size: 1.5rem;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        .incorrect-answers-list ul {
+            list-style: none;
+            padding: 0;
+        }
+        .incorrect-answers-list li {
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-size: 1.1rem;
+        }
+        .incorrect-answers-list li strong {
+            color: #1a202c;
+        }
+
+        @media (min-width: 640px) {
+            .options-container {
+                grid-template-columns: 1fr 1fr; /* Two columns for larger screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <h1 class="text-3xl font-bold text-gray-800">Quiz de Vocabulário (Português para Inglês)</h1>
+        <div id="game-start-screen">
+            <p class="text-lg text-gray-600 mb-6">Teste seu conhecimento de vocabulário em inglês!</p>
+            <button id="startButton" class="start-button">Começar Jogo</button>
+        </div>
+
+        <div id="game-quiz-screen" class="hidden">
+            <p class="text-gray-700 text-lg mb-2">Qual a tradução em inglês de:</p>
+            <div id="wordDisplay" class="word-display"></div>
+            <div id="optionsContainer" class="options-container">
+                <!-- Opções serão carregadas aqui -->
+            </div>
+            <div id="feedbackMessage" class="feedback-message"></div>
+            <div id="scoreDisplay" class="score-display">Pontuação: 0</div>
+            
+            <div class="nav-buttons-container">
+                <button id="previousButton" class="nav-button hidden">Voltar</button>
+                <button id="nextButton" class="nav-button hidden">Próxima</button>
+            </div>
+
+            <div class="action-buttons">
+                <button id="stopButton" class="stop-button">Parar Jogo</button>
+            </div>
+        </div>
+
+        <div id="game-end-screen" class="hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Fim do Jogo!</h2>
+            <p id="finalScore" class="text-xl text-gray-700 mb-6"></p>
+            <div id="incorrectAnswersDisplay" class="incorrect-answers-list hidden">
+                <h3>Palavras que você errou:</h3>
+                <ul id="incorrectAnswersList">
+                    <!-- Erros serão listados aqui -->
+                </ul>
+            </div>
+            <button id="restartButton" class="restart-button">Jogar Novamente</button>
+        </div>
+    </div>
+
+    <script>
+        // Array de objetos com palavras em inglês e suas traduções em português
+        const vocabulary = [
+            { english: "Smell", portuguese: "Cheirar / Cheirar mal" },
+            { english: "Remains", portuguese: "restou, ruínas" },
+            { english: "Teal", portuguese: "cor verde-azulado, azul-petróleo" },
+            { english: "Whether", portuguese: "se" },
+            { english: "Coriander", portuguese: "coentro" },
+            { english: "Tastes", portuguese: "paladar" },
+            { english: "Pleasant", portuguese: "Agradável, simpático" },
+            { english: "Stroking", portuguese: "acariciar, passar a mão" },
+            { english: "Annoying", portuguese: "aborrecido, irritante, maçante, incômodo" },
+            { english: "Mildly", portuguese: "ligeiramente, suavemente, levemente" },
+            { english: "Unnerving", portuguese: "desconcertante, enervante" },
+            { english: "Behaviour", portuguese: "comportamento, conduta" },
+            { english: "rollercoaster", portuguese: "montanha-russa" },
+            { english: "matched", portuguese: "emparelhado" },
+            { english: "drop", portuguese: "cair, deixar cair" },
+            { english: "Amount", portuguese: "quantidade" },
+            { english: "Almost", portuguese: "quase" },
+            { english: "Almost as... as", portuguese: "quase tão... quanto" },
+            { english: "Underdog", portuguese: "menos favorecido, azarão" },
+            { english: "Ever-so-ethereal", portuguese: "Sempre tão etéreo" },
+            { english: "Sight", portuguese: "visão, vista" },
+            { english: "truth", portuguese: "verdade" },
+            { english: "actually", portuguese: "na verdade" },
+            { english: "Trick", portuguese: "truque, trapaça, engano" },
+            { english: "Trickle", portuguese: "fazer cócegas" },
+            { english: "Tackle", portuguese: "enfrentar, lidar" },
+            { english: "higher-pitched", portuguese: "mais agudo" },
+            { english: "quite", portuguese: "completamente, bastante" },
+            { english: "Quiet", portuguese: "quieto, calmo, sossegado, silencioso, calado" },
+            { english: "quit", portuguese: "desistir" },
+            { english: "detached", portuguese: "separado, imparcial, distante" },
+            { english: "Unengaged", portuguese: "Descomprometido, desocupado" },
+            { english: "Employee", portuguese: "empregado" },
+            { english: "leak", portuguese: "vazar, escapar" },
+            { english: "withdrawn", portuguese: "retirar, sacar" },
+            { english: "toward", portuguese: "(preposição): para, na direção de, em relação a, perto de" },
+            { english: "Simmer", portuguese: "cozinhar lentamente" },
+            { english: "anger", portuguese: "raiva, braveza" },
+            { english: "ripe", portuguese: "maturo, pronto" },
+            { english: "buzzworthy", portuguese: "digno de nota" },
+            { english: "underneath", portuguese: "debaixo de" },
+            { english: "further", portuguese: "mais distante, mais longe" },
+            { english: "wilful", portuguese: "intencional, deliberado" },
+            { english: "dismissal", portuguese: "demissão, rejeição" },
+            { english: "assign", portuguese: "alocar, atribuir, reservar, designar, delegar" },
+            { english: "blame", portuguese: "culpar" },
+            { english: "environment", portuguese: "meio ambiente, ambiente" },
+            { english: "few", portuguese: "pouco" },
+            { english: "fork", portuguese: "bifurcação, garfo, forquilha" },
+            { english: "road", portuguese: "estrada" },
+            { english: "whittled-down", portuguese: "reduzir, cortar" },
+            { english: "make up for", portuguese: "compensar" },
+            { english: "reach", portuguese: "alcançar, chegar a" },
+            { english: "renewed", portuguese: "renovado" },
+            { english: "realizing", portuguese: "percebendo" },
+            { english: "foster", portuguese: "criar, cuidar, acolher, encorajar" },
+            { english: "lot of", portuguese: "muito" },
+            { english: "acquire", portuguese: "adquirir" },
+            { english: "acquaintance", portuguese: "conhecido" },
+            { english: "build", portuguese: "construir" },
+            { english: "roster", portuguese: "lista de afazeres, escala (de trabalho)" },
+            { english: "ton", portuguese: "tonelada" },
+            { english: "handle", portuguese: "lidar com, manusear" },
+            { english: "claim", portuguese: "alegar, reivindicar" },
+            { english: "Instead", portuguese: "em vez disso, em vez de" },
+            { english: "stretch", portuguese: "esticar, alongamento" },
+            { english: "dime", portuguese: "moeda (de dez centavos de dólar)" },
+            { english: "fleeting", portuguese: "fugaz" },
+            { english: "screen", portuguese: "tela, exibir, examinar, filtrar" },
+            { english: "even", portuguese: "até, mesmo, ainda" },
+            { english: "even if", portuguese: "mesmo que" },
+            { english: "As", portuguese: "como, enquanto, porque" },
+            { english: "come up with", portuguese: "inventar, apresentar, propor" },
+            { english: "own", portuguese: "ter, possuir, próprio, sozinho" },
+            { english: "see", portuguese: "ver" },
+            { english: "seen", portuguese: "visto" },
+            { english: "seem/s", portuguese: "parecer" },
+            { english: "leaning", portuguese: "inclinando-se" },
+            { english: "leaning on", portuguese: "apoiando-se em" },
+            { english: "astray", portuguese: "fora do caminho, perdido" },
+            { english: "rather", portuguese: "um pouco" },
+            { english: "rather than", portuguese: "em vez de" },
+            { english: "relying", portuguese: "confiar, contar com" },
+            { english: "dust", portuguese: "poeira, pó" },
+            { english: "jaw", portuguese: "mandíbula, maxilar, boca" },
+            { english: "showy", portuguese: "vistoso, espalhafatoso, extravagante" },
+            { english: "spent ou spend", portuguese: "gastou ou gastar" },
+            { english: "deal", portuguese: "trato, acordo" },
+            { english: "deal with", portuguese: "lidar com, enfrentar, resolver" },
+            { english: "ill", portuguese: "doente" },
+            { english: "illness", portuguese: "doença" },
+            { english: "ailment", portuguese: "doença" },
+            { english: "soar/soared", portuguese: "disparar, subir, voar alto" },
+            { english: "lead/led", portuguese: "levar, conduzido, liderar" },
+            { english: "increasing", portuguese: "aumentando" },
+            { english: "mounting", portuguese: "em aumento, crescente" },
+            { english: "enhance/enhancement", portuguese: "melhorar, melhoramento, aumento de qualidade" },
+            { english: "firms", portuguese: "empresas, firmas" },
+            { english: "lurk", portuguese: "espreitar, esconder" },
+            { english: "corner", portuguese: "cantos, esquina, escanteio" },
+            { english: "breach", portuguese: "quebra, não cumprimento, brecha, violar" },
+            { english: "blackmail", portuguese: "chantagem" },
+            { english: "ransom", portuguese: "valor de resgate" },
+            { english: "evaluate", portuguese: "avaliar" },
+            { english: "bond", portuguese: "vínculo, laço, títulos financeiros" },
+            { english: "lieu", portuguese: "em vez de, em vez disso" },
+            { english: "lie", portuguese: "mentira" },
+            { english: "couch", portuguese: "sofá" },
+            { english: "coach", portuguese: "treinador" },
+            { english: "cost", portuguese: "custo" },
+            { english: "stuff/stuffed", portuguese: "cheio, empanturrado" },
+            { english: "pocket", portuguese: "bolso" },
+            { english: "brand/branded", portuguese: "marca, de marca" },
+            { english: "cart", portuguese: "carroça, carrinho" },
+            { english: "pile/pilled", portuguese: "pilha, empilhado" },
+            { english: "freebies", portuguese: "brinde, de graça" },
+            { english: "note", portuguese: "nota, musical, de dinheiro, notar, perceber" },
+            { english: "astonishment", portuguese: "assombro, espanto, incredulidade" },
+            { english: "remark", portuguese: "comentar, comentário, observar" },
+            { english: "perks", portuguese: "benefício, mordomia, vantagem" },
+            { english: "to stock up", portuguese: "estocar" },
+            { english: "poor", portuguese: "pobre" },
+            { english: "lack", portuguese: "faltar, carecer de, falta" },
+            { english: "chronicle/chronicled", portuguese: "crônica, narrar" },
+            { english: "drag/dragged", portuguese: "arrastar" },
+            { english: "physician", portuguese: "médico" },
+            { english: "painkiller", portuguese: "analgésico" },
+            { english: "manufacturer", portuguese: "fabricante" },
+            { english: "curb", portuguese: "liminar, conter, coibir" },
+            { english: "deserved", portuguese: "merecido" },
+            { english: "salespeople/salesperson", portuguese: "vendedor" },
+            { english: "loosely", portuguese: "de forma solta, imprecisamente, livremente" },
+            { english: "loose", portuguese: "solto" },
+            { english: "lose", portuguese: "perder" },
+            { english: "embrace", portuguese: "abraçar, adotar" },
+            { english: "currency", portuguese: "moeda, moeda corrente" },
+            { english: "debase", portuguese: "rebaixar, desvalorizar" },
+            { english: "prone", portuguese: "propenso, debruçado" },
+            { english: "bribe", portuguese: "subornar, suborno" }
+        ];
+
+        let currentVocabulary = []; // Copia do vocabulário para embaralhar e usar
+        let currentQuestionIndex = 0; // Index of the next question to be presented/answered
+        let displayIndex = 0; // Index of the question currently being displayed (can be a past question)
+        let score = 0;
+        let currentWord = {}; // Object to store the current word and its translation
+        let answeredQuestions = []; // Array to store answered questions with their results
+
+        // References to DOM elements
+        const gameStartScreen = document.getElementById('game-start-screen');
+        const gameQuizScreen = document.getElementById('game-quiz-screen');
+        const gameEndScreen = document.getElementById('game-end-screen');
+        const startButton = document.getElementById('startButton');
+        const restartButton = document.getElementById('restartButton');
+        const stopButton = document.getElementById('stopButton');
+        const previousButton = document.getElementById('previousButton');
+        const nextButton = document.getElementById('nextButton');
+        const wordDisplay = document.getElementById('wordDisplay');
+        const optionsContainer = document.getElementById('optionsContainer');
+        const feedbackMessage = document.getElementById('feedbackMessage');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const finalScore = document.getElementById('finalScore');
+        const incorrectAnswersDisplay = document.getElementById('incorrectAnswersDisplay');
+        const incorrectAnswersList = document.getElementById('incorrectAnswersList');
+
+        // Function to shuffle an array (Fisher-Yates shuffle)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+            }
+            return array;
+        }
+
+        // Starts the game
+        function startGame() {
+            score = 0;
+            currentQuestionIndex = 0; // Reset for a new game
+            displayIndex = 0; // Start displaying from the first question
+            answeredQuestions = []; // Clear answered questions for a new game
+            currentVocabulary = shuffleArray([...vocabulary]); // Shuffle vocabulary for each new game
+            scoreDisplay.textContent = `Pontuação: ${score}`;
+            feedbackMessage.textContent = '';
+
+            gameStartScreen.classList.add('hidden');
+            gameQuizScreen.classList.remove('hidden');
+            gameEndScreen.classList.add('hidden');
+            incorrectAnswersDisplay.classList.add('hidden');
+
+            loadQuestion(displayIndex); // Load the first question
+        }
+
+        // Loads a question based on its index
+        function loadQuestion(index) {
+            // If the index is out of bounds, end the game
+            if (index >= currentVocabulary.length) {
+                endGame();
+                return;
+            }
+
+            displayIndex = index; // Update the display index
+            currentWord = currentVocabulary[displayIndex]; // Get the word to display
+            wordDisplay.textContent = currentWord.portuguese; // <<< APRESENTA PALAVRA EM PORTUGUÊS
+            optionsContainer.innerHTML = ''; // Clear previous options
+            feedbackMessage.textContent = ''; // Clear feedback
+
+            // Gera 5 opções de resposta, incluindo a correta em inglês
+            const options = generateOptions(currentWord.english, 5); // <<< GERAR 5 OPÇÕES
+
+            // Check if the question has already been answered
+            const isAnswered = displayIndex < answeredQuestions.length;
+            let answeredData = null;
+            if (isAnswered) {
+                answeredData = answeredQuestions[displayIndex];
+            }
+
+            options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('option-button');
+
+                if (isAnswered) {
+                    button.disabled = true; // Disable options for answered questions
+                    // Apply correct/incorrect styling based on stored answer
+                    if (option === answeredData.correctAnswer) {
+                        button.classList.add('correct');
+                    } else if (option === answeredData.userAnswer && !answeredData.isCorrect) {
+                        button.classList.add('incorrect');
+                    }
+                    if (!answeredData.isCorrect && answeredData.userAnswer === option) {
+                         feedbackMessage.textContent = `Você respondeu: "${answeredData.userAnswer}". O correto era: "${answeredData.correctAnswer}"`;
+                         feedbackMessage.style.color = '#ef4444';
+                    } else if (answeredData.isCorrect && answeredData.userAnswer === option) {
+                        feedbackMessage.textContent = 'Correto!';
+                        feedbackMessage.style.color = '#48bb78';
+                    } else {
+                        feedbackMessage.textContent = '';
+                    }
+
+                } else {
+                    // Only attach click listener if the question is not yet answered
+                    button.addEventListener('click', () => checkAnswer(option, button));
+                }
+                optionsContainer.appendChild(button);
+            });
+
+            updateNavigationButtons(); // Update button visibility after loading question
+        }
+
+        // Generates N answer options, including the correct one in English and N-1 incorrect ones
+        function generateOptions(correctAnswer, numOptions) {
+            const allTranslations = vocabulary.map(item => item.english); // <<< PEGA AS TRADUÇÕES EM INGLÊS
+            let incorrectOptions = [];
+
+            while (incorrectOptions.length < (numOptions - 1)) { // <<< GERA N-1 OPÇÕES INCORRETAS
+                const randomIndex = Math.floor(Math.random() * allTranslations.length);
+                const randomTranslation = allTranslations[randomIndex];
+
+                // Ensure the option is not the correct one and not already added
+                if (randomTranslation !== correctAnswer && !incorrectOptions.includes(randomTranslation)) {
+                    incorrectOptions.push(randomTranslation);
+                }
+            }
+
+            const allOptions = [correctAnswer, ...incorrectOptions];
+            return shuffleArray(allOptions);
+        }
+
+        // Checks the user's answer
+        async function checkAnswer(selectedOption, button) {
+            // Disable all option buttons to prevent multiple clicks
+            Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
+
+            const isCorrect = (selectedOption === currentWord.english); // <<< COMPARA COM A TRADUÇÃO EM INGLÊS
+
+            if (isCorrect) {
+                score++;
+                feedbackMessage.textContent = 'Correto!';
+                feedbackMessage.style.color = '#48bb78';
+                button.classList.add('correct');
+            } else {
+                feedbackMessage.textContent = `Incorreto! O correto era: ${currentWord.english}`; // <<< MOSTRA A TRADUÇÃO EM INGLÊS
+                feedbackMessage.style.color = '#ef4444';
+                button.classList.add('incorrect');
+
+                // Highlight the correct option for the user to see
+                Array.from(optionsContainer.children).forEach(btn => {
+                    if (btn.textContent === currentWord.english) { // <<< COMPARA COM A TRADUÇÃO EM INGLÊS
+                        btn.classList.add('correct');
+                    }
+                });
+            }
+
+            scoreDisplay.textContent = `Pontuação: ${score}`;
+
+            // Store the result of the answered question
+            answeredQuestions.push({
+                originalWord: { ...currentWord }, // Store a copy of the word (english and portuguese)
+                userAnswer: selectedOption,
+                isCorrect: isCorrect,
+                correctAnswer: currentWord.english // <<< ARMAZENA A TRADUÇÃO EM INGLÊS CORRETA
+            });
+
+            currentQuestionIndex++; // Move to the next question for answering
+            displayIndex = currentQuestionIndex; // Automatically move display to the next question
+
+            // Wait a bit before loading the next question
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            loadQuestion(displayIndex); // Load the next question or end the game
+        }
+
+        // Navigates to the previous question in review mode
+        function goToPreviousQuestion() {
+            if (displayIndex > 0) {
+                displayIndex--;
+                loadQuestion(displayIndex);
+            }
+        }
+
+        // Navigates to the next question in review mode or continues the game
+        function goToNextQuestion() {
+            if (displayIndex < currentVocabulary.length) {
+                displayIndex++;
+                loadQuestion(displayIndex);
+            }
+        }
+
+        // Updates the visibility of navigation buttons
+        function updateNavigationButtons() {
+            // Previous button visibility
+            previousButton.classList.toggle('hidden', displayIndex === 0);
+
+            // Next button visibility
+            if (displayIndex < currentQuestionIndex) { // If currently reviewing an already answered question
+                nextButton.classList.remove('hidden');
+            } else if (currentQuestionIndex < currentVocabulary.length) { // If there are still questions to answer
+                nextButton.classList.add('hidden'); // Hide if we are at the current unanswered question
+            } else { // All questions answered
+                nextButton.classList.add('hidden');
+            }
+            // If all questions are answered and we are at the last one, hide next button regardless
+            if (answeredQuestions.length === currentVocabulary.length && displayIndex === currentVocabulary.length - 1) {
+                nextButton.classList.add('hidden');
+            }
+            // If we are looking at the question that is currently being played, and it's not answered yet, hide next
+            if (displayIndex === currentQuestionIndex && answeredQuestions.length === currentQuestionIndex) {
+                nextButton.classList.add('hidden');
+            }
+        }
+
+        // Finalizes the game
+        function endGame() {
+            finalScore.textContent = `Você acertou ${score} de ${answeredQuestions.length} palavras!`;
+            gameQuizScreen.classList.add('hidden');
+            gameEndScreen.classList.remove('hidden');
+
+            incorrectAnswersList.innerHTML = ''; // Clear the list before populating
+
+            const incorrectCount = answeredQuestions.filter(item => !item.isCorrect).length;
+
+            if (incorrectCount > 0) {
+                incorrectAnswersDisplay.classList.remove('hidden');
+                answeredQuestions.forEach(item => {
+                    if (!item.isCorrect) {
+                        const listItem = document.createElement('li');
+                        listItem.innerHTML = `<strong>"${item.originalWord.portuguese}"</strong> - Sua resposta: "${item.userAnswer}" (Correto: "${item.correctAnswer}")`; // <<< MOSTRA PORTUGUÊS E INGLÊS CORRETO
+                        incorrectAnswersList.appendChild(listItem);
+                    }
+                });
+            } else {
+                incorrectAnswersDisplay.classList.add('hidden'); // Hide if no errors
+            }
+        }
+
+        // Add event listeners for buttons
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', startGame);
+        stopButton.addEventListener('click', endGame);
+        previousButton.addEventListener('click', goToPreviousQuestion);
+        nextButton.addEventListener('click', goToNextQuestion);
+
+        // Initialize the game on the start screen when the page loads
+        window.onload = () => {
+            gameStartScreen.classList.remove('hidden');
+            gameQuizScreen.classList.add('hidden');
+            gameEndScreen.classList.add('hidden');
+        };
+    </script>
+</body>
+</html>

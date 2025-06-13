@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escolha a Versão do Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a202c; /* Dark gray */
+            margin-bottom: 20px;
+        }
+        .version-button {
+            background-color: #4299e1; /* Blue */
+            color: white;
+            padding: 18px 30px;
+            border-radius: 10px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            border: none;
+            outline: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%; /* Full width for responsiveness */
+            text-decoration: none; /* Remove underline from links */
+            display: inline-block; /* Ensure it behaves like a block element for width/padding */
+            text-align: center;
+        }
+        .version-button:hover {
+            background-color: #3182ce; /* Darker blue */
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+        .version-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Escolha a Versão do Quiz</h1>
+        <!-- No ambiente do Gemini, você precisará copiar e colar o código da versão escolhida. -->
+        <a href="./quiz-version1.html" class="version-button">Jogar Versão 1 (Inglês -> Português)</a>
+        <a href="./quiz-version2.html" class="version-button">Jogar Versão 2 (Português -> Inglês)</a>
+    </div>
+</body>
+</html>
