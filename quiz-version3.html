@@ -60,8 +60,16 @@
             justify-content: center;
             gap: 15px;
             margin-top: 20px;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
         }
-        .submit-button, .hint-button, .skip-button, .start-button, .restart-button, .nav-button {
+        .bottom-action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+        }
+        .submit-button, .hint-button, .skip-button, .start-button, .restart-button, .nav-button, .stop-game-button, .confirm-button {
             background-color: #4299e1; /* Blue */
             color: white;
             padding: 12px 20px;
@@ -89,13 +97,22 @@
         .hint-button {
             background-color: #f6ad55; /* Orange for hint */
         }
+        .stop-game-button {
+            background-color: #9f7aea; /* Purple for stop game */
+        }
+        .confirm-no-button {
+            background-color: #ef4444; /* Red for No in confirmation */
+        }
+        .confirm-yes-button {
+            background-color: #48bb78; /* Green for Yes in confirmation */
+        }
 
-        .submit-button:hover, .start-button:hover, .restart-button:hover, .hint-button:hover, .skip-button:hover, .nav-button:hover {
+        .submit-button:hover, .start-button:hover, .restart-button:hover, .hint-button:hover, .skip-button:hover, .nav-button:hover, .stop-game-button:hover, .confirm-button:hover {
             filter: brightness(1.1); /* Slightly brighter on hover */
             transform: translateY(-2px);
             box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
         }
-        .submit-button:active, .start-button:active, .restart-button:active, .hint-button:active, .skip-button:active, .nav-button:active {
+        .submit-button:active, .start-button:active, .restart-button:active, .hint-button:active, .skip-button:active, .nav-button:active, .stop-game-button:active, .confirm-button:active {
             transform: translateY(0);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
@@ -162,8 +179,41 @@
             margin-bottom: 5px;
         }
 
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+        }
+        .modal-content p {
+            font-size: 1.3rem;
+            color: #1a202c;
+            margin-bottom: 25px;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
         @media (min-width: 640px) {
-            .action-buttons {
+            .action-buttons, .bottom-action-buttons {
                 flex-direction: row; /* Horizontal on larger screens */
             }
         }
@@ -195,6 +245,10 @@
                 <button id="skipButton" class="skip-button">Pular</button>
             </div>
 
+            <div class="bottom-action-buttons">
+                 <button id="stopGameButton" class="stop-game-button">Concluir Jogo</button>
+            </div>
+
             <div class="nav-buttons-container hidden"> <!-- Hidden by default, only shown in review -->
                 <button id="previousButton" class="nav-button">Voltar</button>
                 <button id="nextButton" class="nav-button">Próxima</button>
@@ -220,6 +274,17 @@
         </div>
     </div>
 
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <p>Tem certeza que deseja finalizar o jogo?</p>
+            <div class="modal-buttons">
+                <button id="confirmYesButton" class="confirm-button confirm-yes-button">Sim</button>
+                <button id="confirmNoButton" class="confirm-button confirm-no-button">Não</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Substitua este URL pelo URL CSV da sua planilha Google Sheets publicada
         const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJcIYOfXWlZ7-xu0_9UiCOqbx9th3m3h8Ved353D2VGXAxuizxdPTifsTetr3g2h30lW62vsgfP_w9/pub?output=csv'; 
@@ -228,7 +293,7 @@
 
         let vocabulary = []; // O array de vocabulário agora será preenchido dinamicamente
         let currentVocabulary = []; 
-        let currentQuestionIndex = 0; // Index da próxima questão a ser apresentada/respondida
+        let currentQuestionIndex = 0; // Index da próxima questão a ser apresentada/respondida (sempre avançando no jogo)
         let displayIndex = 0; // Index da questão atualmente exibida (pode ser uma questão anterior para revisão)
         let score = 0;
         let currentWord = {};
@@ -236,6 +301,7 @@
 
         let hintUsedForCurrentQuestion = false; // Flag para rastrear se a dica foi usada na questão atual
         let hintLevel = 0; // 0: nenhuma dica, 1: número de letras, 2: primeira letra, etc.
+        let isReviewMode = false; // Flag para indicar se estamos no modo de revisão ou jogo ativo
 
         // Referências a elementos DOM
         const gameStartScreen = document.getElementById('game-start-screen');
@@ -246,6 +312,7 @@
         const submitButton = document.getElementById('submitButton');
         const hintButton = document.getElementById('hintButton');
         const skipButton = document.getElementById('skipButton');
+        const stopGameButton = document.getElementById('stopGameButton'); // Novo botão
         const previousButton = document.getElementById('previousButton');
         const nextButton = document.getElementById('nextButton');
         const wordDisplay = document.getElementById('wordDisplay');
@@ -263,6 +330,11 @@
         const incorrectAnswersList = document.getElementById('incorrectAnswersList');
         const loadingMessage = document.getElementById('loadingMessage');
         const errorMessage = document.getElementById('errorMessage');
+
+        // Modal de Confirmação
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmYesButton = document.getElementById('confirmYesButton');
+        const confirmNoButton = document.getElementById('confirmNoButton');
 
         // Função para calcular a Distância de Levenshtein (tolerância a erros de digitação)
         function levenshteinDistance(s1, s2) {
@@ -371,32 +443,43 @@
             scoreDisplay.textContent = `Pontuação: ${score}`;
             feedbackMessage.textContent = '';
             hintDisplay.textContent = ''; // Limpa a dica
+            isReviewMode = false; // Define como modo de jogo ativo
 
             gameStartScreen.classList.add('hidden');
             gameQuizScreen.classList.remove('hidden');
             gameEndScreen.classList.add('hidden');
             incorrectAnswersDisplay.classList.add('hidden');
+            finalStats.classList.add('hidden'); // Esconde as estatísticas finais ao reiniciar
 
             // Garante que os botões de ação e campo de input estão visíveis e habilitados
             submitButton.classList.remove('hidden');
             hintButton.classList.remove('hidden');
             skipButton.classList.remove('hidden');
+            stopGameButton.classList.remove('hidden'); // Mostra o botão Concluir
             answerInput.classList.remove('hidden');
             answerInput.disabled = false;
             hintButton.disabled = false; // Reabilita a dica para o novo jogo
 
             // Esconde botões de navegação ao iniciar um novo jogo
-            previousButton.classList.add('hidden');
-            nextButton.classList.add('hidden');
-            finalStats.classList.add('hidden'); // Esconde as estatísticas finais ao reiniciar
+            document.querySelector('.nav-buttons-container').classList.add('hidden');
 
             loadQuestion(displayIndex);
         }
 
         // Carrega uma questão com base no índice
         function loadQuestion(index) {
-            if (index >= currentVocabulary.length) {
+            // Se o jogo terminou e não estamos no modo de revisão, não faça nada.
+            if (index >= currentVocabulary.length && !isReviewMode) {
                 endGame();
+                return;
+            }
+
+            // Garante que displayIndex não excede o array de questões respondidas no modo revisão.
+            if (isReviewMode && index >= answeredQuestions.length) {
+                // Se o usuário está tentando ir "além" das questões respondidas no modo revisão,
+                // apenas impede o avanço (permanece na última respondida ou ajusta).
+                displayIndex = answeredQuestions.length > 0 ? answeredQuestions.length - 1 : 0;
+                updateNavigationButtons();
                 return;
             }
 
@@ -404,25 +487,33 @@
             currentWord = currentVocabulary[displayIndex];
             wordDisplay.textContent = currentWord.portuguese; // Mostra a palavra em português
             answerInput.value = ''; // Limpa o campo de input
-            answerInput.focus(); // Foca no campo para digitação
             feedbackMessage.textContent = ''; // Limpa feedback
             hintDisplay.textContent = ''; // Limpa a dica
 
-            // Resetar flag de dica e nível de dica para a nova questão
-            hintUsedForCurrentQuestion = false;
-            hintLevel = 0;
-            hintButton.disabled = false; // Habilita o botão de dica
+            // Define se estamos em modo de revisão
+            // Se o índice da questão atual é menor do que o número de questões já respondidas, estamos revisando.
+            isReviewMode = (displayIndex < answeredQuestions.length); 
 
-            // Lida com o estado dos botões de ação e campo de input
-            const isAnswered = displayIndex < answeredQuestions.length;
-            if (isAnswered) {
-                // Modo de revisão
+            // Resetar flag de dica e nível de dica para a nova questão (apenas se não estiver em modo de revisão)
+            if (!isReviewMode) { // Modo de jogo ativo
+                hintUsedForCurrentQuestion = false;
+                hintLevel = 0;
+                hintButton.disabled = false; // Habilita o botão de dica
+                answerInput.focus(); // Foca no campo para digitação em modo de jogo ativo
+                
+                answerInput.disabled = false;
+                submitButton.classList.remove('hidden');
+                hintButton.classList.remove('hidden');
+                skipButton.classList.remove('hidden');
+                stopGameButton.classList.remove('hidden');
+            } else { // Modo de revisão
                 const answeredData = answeredQuestions[displayIndex];
                 answerInput.value = answeredData.userAnswer; // Mostra a resposta do usuário
                 answerInput.disabled = true; // Desabilita input em revisão
                 submitButton.classList.add('hidden'); // Esconde botão de verificar
                 hintButton.classList.add('hidden'); // Esconde botão de dica
                 skipButton.classList.add('hidden'); // Esconde botão de pular
+                stopGameButton.classList.add('hidden'); // Esconde botão de concluir em revisão
 
                 if (answeredData.isSkipped) {
                     feedbackMessage.textContent = `Você pulou esta palavra. O correto era: "${answeredData.correctAnswer}"`;
@@ -431,29 +522,19 @@
                     if (answeredData.usedHint) {
                          feedbackMessage.textContent = `Correto (com dica)! Sua resposta: "${answeredData.userAnswer}"`;
                     } else {
-                         feedbackMessage.textContent = `Correto! Sua resposta: "${answeredData.userAnswer}"`;
+                         feedbackMessage.textContent = 'Correto!';
                     }
                     feedbackMessage.style.color = '#48bb78';
                 } else {
                     feedbackMessage.textContent = `Incorreto! Sua resposta: "${answeredData.userAnswer}". O correto era: "${answeredData.correctAnswer}"`;
                     feedbackMessage.style.color = '#ef4444';
                 }
-
-                // Mostrar os botões de navegação no modo de revisão
-                previousButton.classList.remove('hidden');
-                nextButton.classList.remove('hidden');
-
-            } else {
-                // Modo de jogo normal (nova questão)
-                answerInput.disabled = false;
-                submitButton.classList.remove('hidden');
-                hintButton.classList.remove('hidden');
-                skipButton.classList.remove('hidden');
-                // Esconder botões de navegação durante o jogo
-                previousButton.classList.add('hidden');
-                nextButton.classList.add('hidden');
             }
 
+            // Sempre mostra o container dos botões de navegação se pelo menos uma pergunta foi respondida
+            // Isso garante que "Voltar" apareça após a primeira resposta.
+            document.querySelector('.nav-buttons-container').classList.toggle('hidden', answeredQuestions.length === 0);
+            
             updateNavigationButtons();
         }
 
@@ -465,6 +546,8 @@
 
         // Verifica a resposta do usuário no modo de digitação
         async function checkAnswer() {
+            if (isReviewMode) return; // Não permitir responder em modo de revisão
+
             const userAnswer = answerInput.value; // Pega a resposta original do usuário
             const normalizedUserAnswer = normalizeString(userAnswer);
             const normalizedCorrectAnswer = normalizeString(currentWord.english); // Tradução em inglês
@@ -502,6 +585,7 @@
             submitButton.disabled = true;
             hintButton.disabled = true;
             skipButton.disabled = true;
+            stopGameButton.disabled = true;
 
             answeredQuestions.push({
                 originalWord: { ...currentWord },
@@ -512,21 +596,29 @@
                 correctAnswer: currentWord.english
             });
 
-            currentQuestionIndex++;
-            displayIndex = currentQuestionIndex;
+            currentQuestionIndex++; // Avança para a próxima questão na sequência do jogo
 
             await new Promise(resolve => setTimeout(resolve, 1500)); // Pequena pausa
 
-            loadQuestion(displayIndex); // Carrega a próxima questão
+            if (currentQuestionIndex >= currentVocabulary.length) {
+                endGame(); // Se todas as palavras foram respondidas, finaliza o jogo
+            } else {
+                loadQuestion(currentQuestionIndex); // Carrega a próxima questão (currentQuestionIndex será o novo displayIndex)
+            }
+            
             // Reabilita os botões e input para a próxima questão ou fim de jogo
+            // Isso é feito no loadQuestion, mas para garantir
             answerInput.disabled = false;
             submitButton.disabled = false;
             hintButton.disabled = false;
             skipButton.disabled = false;
+            stopGameButton.disabled = false;
         }
 
         // Exibe uma dica para a palavra atual
         function provideHint() {
+            if (isReviewMode) return; // Não permitir dicas em modo de revisão
+
             hintUsedForCurrentQuestion = true; // Marca que a dica foi usada para esta questão
             hintLevel++;
 
@@ -564,10 +656,13 @@
 
         // Pula a questão atual
         async function skipQuestion() {
+            if (isReviewMode) return; // Não permitir pular em modo de revisão
+
             answerInput.disabled = true;
             submitButton.disabled = true;
             hintButton.disabled = true;
             skipButton.disabled = true;
+            stopGameButton.disabled = true;
 
             feedbackMessage.textContent = `Questão pulada. O correto era: "${currentWord.english}"`;
             feedbackMessage.style.color = '#f6ad55'; // Cor de aviso para pulado
@@ -581,18 +676,50 @@
                 correctAnswer: currentWord.english
             });
 
-            currentQuestionIndex++;
-            displayIndex = currentQuestionIndex;
+            currentQuestionIndex++; // Avança para a próxima questão na sequência do jogo
 
             await new Promise(resolve => setTimeout(resolve, 1500)); // Pequena pausa
 
-            loadQuestion(displayIndex);
+            if (currentQuestionIndex >= currentVocabulary.length) {
+                endGame(); // Se todas as palavras foram processadas, finaliza o jogo
+            } else {
+                loadQuestion(currentQuestionIndex); // Carrega a próxima questão (currentQuestionIndex será o novo displayIndex)
+            }
+            
             // Reabilita os botões e input para a próxima questão ou fim de jogo
+            // Isso é feito no loadQuestion, mas para garantir
             answerInput.disabled = false;
             submitButton.disabled = false;
             hintButton.disabled = false;
             skipButton.disabled = false;
+            stopGameButton.disabled = false;
         }
+
+        // --- Funções do Modal de Confirmação ---
+        function showConfirmModal() {
+            confirmModal.classList.remove('hidden');
+            // Desabilita interação com o jogo enquanto o modal está aberto
+            answerInput.disabled = true;
+            submitButton.disabled = true;
+            hintButton.disabled = true;
+            skipButton.disabled = true;
+            stopGameButton.disabled = true;
+        }
+
+        function hideConfirmModal() {
+            confirmModal.classList.add('hidden');
+            // Reabilita interação com o jogo
+            if (!isReviewMode) { // Apenas se não estivermos já no modo revisão
+                answerInput.disabled = false;
+                submitButton.disabled = false;
+                hintButton.disabled = false;
+                skipButton.disabled = false;
+                stopGameButton.disabled = false;
+            }
+            answerInput.focus(); // Retorna o foco para o input
+        }
+        // --- Fim das Funções do Modal de Confirmação ---
+
 
         // Navega para a questão anterior em modo de revisão
         function goToPreviousQuestion() {
@@ -602,34 +729,43 @@
             }
         }
 
-        // Navega para a próxima questão em modo de revisão ou continua o jogo
+        // Navega para a próxima questão em modo de revisão ou volta ao jogo ativo
         function goToNextQuestion() {
-            if (displayIndex < answeredQuestions.length) { // Só pode navegar para frente nas respondidas
+            // Se estamos no modo de revisão e não é a última pergunta respondida
+            if (displayIndex < answeredQuestions.length - 1) {
                 displayIndex++;
                 loadQuestion(displayIndex);
-            } else if (displayIndex === answeredQuestions.length && answeredQuestions.length < currentVocabulary.length) {
-                // Se estiver na última respondida e houver mais para responder
-                displayIndex++; // Avança para a próxima não respondida
-                loadQuestion(displayIndex);
-            } else {
-                // Se estiver na última respondida e não houver mais para responder, ou já está no fim
-                // Não faz nada ou volta para o endGame
+            } 
+            // Se estamos na última pergunta respondida (no modo de revisão) e ainda há perguntas não respondidas no jogo
+            else if (displayIndex === answeredQuestions.length - 1 && currentQuestionIndex < currentVocabulary.length) {
+                 // Transita do modo de revisão para o modo de jogo ativo
+                 isReviewMode = false;
+                 displayIndex = currentQuestionIndex; // Define o displayIndex para a próxima questão ainda não respondida
+                 loadQuestion(displayIndex);
             }
+            // Se estamos na última pergunta respondida e todas as perguntas já foram processadas, não há para onde ir.
         }
 
         // Atualiza a visibilidade dos botões de navegação
         function updateNavigationButtons() {
-            // Mostrar botões de navegação apenas no modo de revisão (após o jogo ter começado e ter perguntas respondidas)
-            if (answeredQuestions.length > 0 && gameQuizScreen.classList.contains('hidden') && gameEndScreen.classList.contains('hidden')) {
-                // Se estamos na tela de início, não mostramos os botões de navegação de revisão
-                previousButton.classList.add('hidden');
-                nextButton.classList.add('hidden');
-            } else if (gameEndScreen.classList.contains('hidden')) { // Estamos na tela do quiz (jogando ou revisando)
-                 previousButton.classList.toggle('hidden', displayIndex === 0);
-                 nextButton.classList.toggle('hidden', displayIndex === currentQuestionIndex && answeredQuestions.length === currentQuestionIndex);
-            } else { // Estamos na tela de fim de jogo (revisão final)
+            // Os botões de navegação só são visíveis e funcionais no modo de revisão (incluindo a revisão final).
+            // Em jogo ativo, eles ficam escondidos.
+
+            if (isReviewMode) {
+                document.querySelector('.nav-buttons-container').classList.remove('hidden');
+                // Botão "Voltar" é visível se não estamos na primeira questão do modo de revisão
                 previousButton.classList.toggle('hidden', displayIndex === 0);
-                nextButton.classList.toggle('hidden', displayIndex >= answeredQuestions.length - 1);
+                
+                // Botão "Próxima" é visível se:
+                // 1. Não estamos na última questão respondida no modo de revisão, OU
+                // 2. Estamos na última questão respondida no modo de revisão, mas ainda há questões a serem respondidas no jogo ativo.
+                const isAtLastAnsweredInReview = displayIndex === answeredQuestions.length - 1;
+                const allQuestionsProcessed = currentQuestionIndex >= currentVocabulary.length;
+
+                nextButton.classList.toggle('hidden', isAtLastAnsweredInReview && allQuestionsProcessed);
+
+            } else {
+                document.querySelector('.nav-buttons-container').classList.add('hidden');
             }
         }
 
@@ -643,14 +779,15 @@
             submitButton.classList.add('hidden');
             hintButton.classList.add('hidden');
             skipButton.classList.add('hidden');
+            stopGameButton.classList.add('hidden'); // Esconde o botão Concluir
             answerInput.classList.add('hidden');
             hintDisplay.classList.add('hidden'); // Esconde dica ao final
 
-            // Mostrar botões de navegação para revisão no final do jogo
-            previousButton.classList.remove('hidden');
-            nextButton.classList.remove('hidden');
-            displayIndex = answeredQuestions.length > 0 ? answeredQuestions.length - 1 : 0; // Vai para a última pergunta respondida para revisão
-
+            // Ativar modo de revisão no final do jogo
+            isReviewMode = true;
+            // Se houver questões respondidas, define displayIndex para a última para começar a revisão
+            displayIndex = answeredQuestions.length > 0 ? answeredQuestions.length - 1 : 0; 
+            
             // Calcular estatísticas detalhadas
             const totalAnswered = answeredQuestions.length;
             const correctNoHintCount = answeredQuestions.filter(q => q.isCorrect && !q.usedHint).length;
@@ -685,7 +822,6 @@
             } else {
                 incorrectAnswersDisplay.classList.add('hidden'); // Esconde se não houver erros ou puladas
             }
-            updateNavigationButtons(); // Atualiza botões de navegação para a revisão final
             loadQuestion(displayIndex); // Carrega a última questão para que a revisão comece da última
         }
 
@@ -695,8 +831,17 @@
         submitButton.addEventListener('click', checkAnswer);
         hintButton.addEventListener('click', provideHint);
         skipButton.addEventListener('click', skipQuestion);
+        stopGameButton.addEventListener('click', showConfirmModal); // Listener para o novo botão "Concluir"
+
         previousButton.addEventListener('click', goToPreviousQuestion);
         nextButton.addEventListener('click', goToNextQuestion);
+
+        // Listeners para o modal de confirmação
+        confirmYesButton.addEventListener('click', () => {
+            hideConfirmModal();
+            endGame(); // Finaliza o jogo se o usuário confirmar
+        });
+        confirmNoButton.addEventListener('click', hideConfirmModal); // Apenas esconde o modal
 
         // Permite enviar a resposta pressionando Enter
         answerInput.addEventListener('keypress', (e) => {
@@ -710,6 +855,7 @@
             gameStartScreen.classList.remove('hidden');
             gameQuizScreen.classList.add('hidden'); // Esconder por padrão
             gameEndScreen.classList.add('hidden'); // Esconder por padrão
+            confirmModal.classList.add('hidden'); // Garante que o modal está escondido no início
             await loadVocabularyFromGoogleSheet(); // Carrega o vocabulário ao iniciar a página
         };
     </script>
