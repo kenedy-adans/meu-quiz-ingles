@@ -291,17 +291,17 @@
 
         const TYPO_TOLERANCE_THRESHOLD = 1; // Permite 1 erro de digitação para considerar correto
 
-        let vocabulary = []; // O array de vocabulário agora será preenchido dinamicamente
+        let vocabulary = []; 
         let currentVocabulary = []; 
-        let currentQuestionIndex = 0; // Index da próxima questão a ser apresentada/respondida (sempre avançando no jogo)
-        let displayIndex = 0; // Index da questão atualmente exibida (pode ser uma questão anterior para revisão)
+        let currentQuestionIndex = 0; 
+        let displayIndex = 0; 
         let score = 0;
         let currentWord = {};
-        let answeredQuestions = []; // Array para armazenar questões respondidas com seus resultados
+        let answeredQuestions = []; 
 
-        let hintUsedForCurrentQuestion = false; // Flag para rastrear se a dica foi usada na questão atual
-        let hintLevel = 0; // 0: nenhuma dica, 1: número de letras, 2: primeira letra, etc.
-        let isReviewMode = false; // Flag para indicar se estamos no modo de revisão ou jogo ativo
+        let hintUsedForCurrentQuestion = false; 
+        let hintLevel = 0; 
+        let isReviewMode = false; 
 
         // Referências a elementos DOM
         const gameStartScreen = document.getElementById('game-start-screen');
@@ -312,7 +312,7 @@
         const submitButton = document.getElementById('submitButton');
         const hintButton = document.getElementById('hintButton');
         const skipButton = document.getElementById('skipButton');
-        const stopGameButton = document.getElementById('stopGameButton'); // Novo botão
+        const stopGameButton = document.getElementById('stopGameButton');
         const previousButton = document.getElementById('previousButton');
         const nextButton = document.getElementById('nextButton');
         const wordDisplay = document.getElementById('wordDisplay');
@@ -338,8 +338,8 @@
 
         // Função para calcular a Distância de Levenshtein (tolerância a erros de digitação)
         function levenshteinDistance(s1, s2) {
-            s1 = String(s1); // Garante que s1 é string
-            s2 = String(s2); // Garante que s2 é string
+            s1 = String(s1); 
+            s2 = String(s2); 
 
             const m = s1.length;
             const n = s2.length;
@@ -356,9 +356,9 @@
                 for (let j = 1; j <= n; j++) {
                     const cost = (s1[i - 1] === s2[j - 1]) ? 0 : 1;
                     dp[i][j] = Math.min(
-                        dp[i - 1][j] + 1,      // Deletion
-                        dp[i][j - 1] + 1,      // Insertion
-                        dp[i - 1][j - 1] + cost // Substitution
+                        dp[i - 1][j] + 1,      
+                        dp[i][j - 1] + 1,      
+                        dp[i - 1][j - 1] + cost 
                     );
                 }
             }
@@ -369,37 +369,40 @@
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]]; // Troca elementos
+                [array[i], array[j]] = [array[j], array[i]]; 
             }
             return array;
         }
 
-        // Função para carregar vocabulário da planilha Google Sheets
-        async function loadVocabularyFromGoogleSheet() {
+        // Função para carregar vocabulário da planilha Google Sheets (usando Promises)
+        function loadVocabularyFromGoogleSheet() { 
             loadingMessage.classList.remove('hidden');
             errorMessage.classList.add('hidden');
-            startButton.disabled = true; // Desabilita o botão enquanto carrega
+            startButton.disabled = true;
 
-            try {
-                const response = await fetch(GOOGLE_SHEET_CSV_URL);
-                if (!response.ok) {
-                    throw new Error(`Erro ao carregar a planilha: ${response.statusText}`);
-                }
-                const csvText = await response.text();
-                vocabulary = parseCSV(csvText);
+            return fetch(GOOGLE_SHEET_CSV_URL) // Retorna a Promise
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Erro ao carregar a planilha: ${response.statusText}`);
+                    }
+                    return response.text();
+                })
+                .then(csvText => {
+                    vocabulary = parseCSV(csvText);
 
-                if (vocabulary.length === 0) {
-                    throw new Error("Nenhum dado de vocabulário encontrado na planilha. Verifique se as colunas estão corretas ou se há dados.");
-                }
-                startButton.disabled = false; // Habilita o botão se o carregamento for bem-sucedido
-                loadingMessage.classList.add('hidden');
-
-            } catch (error) {
-                console.error("Falha ao carregar vocabulário:", error);
-                loadingMessage.classList.add('hidden');
-                errorMessage.textContent = `Erro ao carregar vocabulário: ${error.message}. Verifique o URL da planilha.`;
-                errorMessage.classList.remove('hidden');
-            }
+                    if (vocabulary.length === 0) {
+                        throw new Error("Nenhum dado de vocabulário encontrado na planilha. Verifique se as colunas estão corretas ou se há dados.");
+                    }
+                    startButton.disabled = false;
+                    loadingMessage.classList.add('hidden');
+                })
+                .catch(error => {
+                    console.error("Falha ao carregar vocabulário:", error);
+                    loadingMessage.classList.add('hidden');
+                    errorMessage.textContent = `Erro ao carregar vocabulário: ${error.message}. Verifique o URL da planilha.`;
+                    errorMessage.classList.remove('hidden');
+                    throw error; // Propaga o erro para que a Promise seja rejeitada
+                });
         }
 
         // Função para analisar o texto CSV
@@ -407,18 +410,16 @@
             const lines = csvText.split('\n');
             const parsedVocabulary = [];
             
-            // Ignora a primeira linha (cabeçalho)
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (line) {
-                    // Divide a linha por vírgula. Lida com aspas duplas para campos com vírgula.
                     const parts = line.match(/(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|([^,]+))/g);
 
                     if (parts && parts.length >= 2) {
-                        const english = parts[0].replace(/"/g, '').trim(); // Remove aspas
-                        const portuguese = parts[1].replace(/"/g, '').trim(); // Remove aspas
+                        const english = parts[0].replace(/"/g, '').trim(); 
+                        const portuguese = parts[1].replace(/"/g, '').trim(); 
                         
-                        if (english && portuguese) { // Garante que ambos os campos não estão vazios
+                        if (english && portuguese) { 
                             parsedVocabulary.push({ english, portuguese });
                         }
                     }
@@ -439,28 +440,26 @@
             currentQuestionIndex = 0;
             displayIndex = 0;
             answeredQuestions = [];
-            currentVocabulary = shuffleArray([...vocabulary]); // Embaralha o vocabulário para cada jogo
+            currentVocabulary = shuffleArray([...vocabulary]); 
             scoreDisplay.textContent = `Pontuação: ${score}`;
             feedbackMessage.textContent = '';
-            hintDisplay.textContent = ''; // Limpa a dica
-            isReviewMode = false; // Define como modo de jogo ativo
+            hintDisplay.textContent = ''; 
+            isReviewMode = false; 
 
             gameStartScreen.classList.add('hidden');
             gameQuizScreen.classList.remove('hidden');
             gameEndScreen.classList.add('hidden');
             incorrectAnswersDisplay.classList.add('hidden');
-            finalStats.classList.add('hidden'); // Esconde as estatísticas finais ao reiniciar
+            finalStats.classList.add('hidden'); 
 
-            // Garante que os botões de ação e campo de input estão visíveis e habilitados
             submitButton.classList.remove('hidden');
             hintButton.classList.remove('hidden');
             skipButton.classList.remove('hidden');
-            stopGameButton.classList.remove('hidden'); // Mostra o botão Concluir
+            stopGameButton.classList.remove('hidden'); 
             answerInput.classList.remove('hidden');
             answerInput.disabled = false;
-            hintButton.disabled = false; // Reabilita a dica para o novo jogo
+            hintButton.disabled = false;
 
-            // Esconde botões de navegação ao iniciar um novo jogo
             document.querySelector('.nav-buttons-container').classList.add('hidden');
 
             loadQuestion(displayIndex);
@@ -468,16 +467,14 @@
 
         // Carrega uma questão com base no índice
         function loadQuestion(index) {
-            // Se o jogo terminou e não estamos no modo de revisão, não faça nada.
+            console.log(`[loadQuestion] Chamado. index=${index}, currentQuestionIndex=${currentQuestionIndex}, answeredQuestions.length=${answeredQuestions.length}`);
+
             if (index >= currentVocabulary.length && !isReviewMode) {
                 endGame();
                 return;
             }
 
-            // Garante que displayIndex não excede o array de questões respondidas no modo revisão.
             if (isReviewMode && index >= answeredQuestions.length) {
-                // Se o usuário está tentando ir "além" das questões respondidas no modo revisão,
-                // apenas impede o avanço (permanece na última respondida ou ajusta).
                 displayIndex = answeredQuestions.length > 0 ? answeredQuestions.length - 1 : 0;
                 updateNavigationButtons();
                 return;
@@ -485,39 +482,38 @@
 
             displayIndex = index;
             currentWord = currentVocabulary[displayIndex];
-            wordDisplay.textContent = currentWord.portuguese; // Mostra a palavra em português
-            answerInput.value = ''; // Limpa o campo de input
-            feedbackMessage.textContent = ''; // Limpa feedback
-            hintDisplay.textContent = ''; // Limpa a dica
+            wordDisplay.textContent = currentWord.portuguese;
+            answerInput.value = '';
+            feedbackMessage.textContent = '';
+            hintDisplay.textContent = '';
 
-            // Define se estamos em modo de revisão
-            // Se o índice da questão atual é menor do que o número de questões já respondidas, estamos revisando.
-            isReviewMode = (displayIndex < answeredQuestions.length); 
+            isReviewMode = (displayIndex < currentQuestionIndex); 
+            console.log(`[loadQuestion] isReviewMode: ${isReviewMode}`);
 
-            // Resetar flag de dica e nível de dica para a nova questão (apenas se não estiver em modo de revisão)
-            if (!isReviewMode) { // Modo de jogo ativo
+
+            if (!isReviewMode) { 
                 hintUsedForCurrentQuestion = false;
                 hintLevel = 0;
-                hintButton.disabled = false; // Habilita o botão de dica
-                answerInput.focus(); // Foca no campo para digitação em modo de jogo ativo
+                hintButton.disabled = false;
+                answerInput.focus();
                 
                 answerInput.disabled = false;
                 submitButton.classList.remove('hidden');
                 hintButton.classList.remove('hidden');
                 skipButton.classList.remove('hidden');
                 stopGameButton.classList.remove('hidden');
-            } else { // Modo de revisão
+            } else { 
                 const answeredData = answeredQuestions[displayIndex];
-                answerInput.value = answeredData.userAnswer; // Mostra a resposta do usuário
-                answerInput.disabled = true; // Desabilita input em revisão
-                submitButton.classList.add('hidden'); // Esconde botão de verificar
-                hintButton.classList.add('hidden'); // Esconde botão de dica
-                skipButton.classList.add('hidden'); // Esconde botão de pular
-                stopGameButton.classList.add('hidden'); // Esconde botão de concluir em revisão
+                answerInput.value = answeredData.userAnswer;
+                answerInput.disabled = true;
+                submitButton.classList.add('hidden');
+                hintButton.classList.add('hidden');
+                skipButton.classList.add('hidden');
+                stopGameButton.classList.add('hidden');
 
                 if (answeredData.isSkipped) {
                     feedbackMessage.textContent = `Você pulou esta palavra. O correto era: "${answeredData.correctAnswer}"`;
-                    feedbackMessage.style.color = '#f6ad55'; // Laranja para pulado
+                    feedbackMessage.style.color = '#f6ad55';
                 } else if (answeredData.isCorrect) {
                     if (answeredData.usedHint) {
                          feedbackMessage.textContent = `Correto (com dica)! Sua resposta: "${answeredData.userAnswer}"`;
@@ -531,36 +527,35 @@
                 }
             }
 
-            // Sempre mostra o container dos botões de navegação se pelo menos uma pergunta foi respondida
-            // Isso garante que "Voltar" apareça após a primeira resposta.
-            document.querySelector('.nav-buttons-container').classList.toggle('hidden', answeredQuestions.length === 0);
+            // O container de navegação deve ser visível se currentQuestionIndex for maior que 0
+            // Isso garante que os botões aparecem após a primeira questão ser processada.
+            document.querySelector('.nav-buttons-container').classList.toggle('hidden', currentQuestionIndex === 0);
+            console.log(`[loadQuestion] Nav container hidden? ${document.querySelector('.nav-buttons-container').classList.contains('hidden')}`);
             
             updateNavigationButtons();
         }
 
         // Função para normalizar strings para comparação (ignorar maiúsculas/minúsculas, acentos, espaços extras)
         function normalizeString(str) {
-            if (typeof str !== 'string') return ''; // Garante que é uma string
+            if (typeof str !== 'string') return '';
             return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
         }
 
-        // Verifica a resposta do usuário no modo de digitação
-        async function checkAnswer() {
-            if (isReviewMode) return; // Não permitir responder em modo de revisão
+        // Verifica a resposta do usuário no modo de digitação (usando Promises)
+        function checkAnswer() {
+            if (isReviewMode) return;
 
-            const userAnswer = answerInput.value; // Pega a resposta original do usuário
+            const userAnswer = answerInput.value;
             const normalizedUserAnswer = normalizeString(userAnswer);
-            const normalizedCorrectAnswer = normalizeString(currentWord.english); // Tradução em inglês
+            const normalizedCorrectAnswer = normalizeString(currentWord.english);
 
             let isCorrect = false;
             let feedbackText = '';
 
-            // Perfeita correspondência
             if (normalizedUserAnswer === normalizedCorrectAnswer) {
                 isCorrect = true;
                 feedbackText = 'Correto!';
             } else {
-                // Tolerância a erros de digitação (fuzzy matching)
                 const distance = levenshteinDistance(normalizedUserAnswer, normalizedCorrectAnswer);
                 if (distance > 0 && distance <= TYPO_TOLERANCE_THRESHOLD) {
                     isCorrect = true;
@@ -570,17 +565,15 @@
                 }
             }
             
-            // Aplica a cor do feedback
             if (isCorrect) {
                 score++;
-                feedbackMessage.style.color = '#48bb78'; // Verde
+                feedbackMessage.style.color = '#48bb78';
             } else {
-                feedbackMessage.style.color = '#ef4444'; // Vermelho
+                feedbackMessage.style.color = '#ef4444';
             }
             feedbackMessage.textContent = feedbackText;
             scoreDisplay.textContent = `Pontuação: ${score}`;
 
-            // Desabilita input e botões de ação após submeter
             answerInput.disabled = true;
             submitButton.disabled = true;
             hintButton.disabled = true;
@@ -589,37 +582,37 @@
 
             answeredQuestions.push({
                 originalWord: { ...currentWord },
-                userAnswer: userAnswer, // Armazena a resposta original do usuário
+                userAnswer: userAnswer,
                 isCorrect: isCorrect,
-                usedHint: hintUsedForCurrentQuestion, // Salva se a dica foi usada
-                isSkipped: false, // Não foi pulada
+                usedHint: hintUsedForCurrentQuestion,
+                isSkipped: false,
                 correctAnswer: currentWord.english
             });
 
-            currentQuestionIndex++; // Avança para a próxima questão na sequência do jogo
+            currentQuestionIndex++;
+            console.log(`[checkAnswer] currentQuestionIndex após resposta: ${currentQuestionIndex}`);
 
-            await new Promise(resolve => setTimeout(resolve, 1500)); // Pequena pausa
-
-            if (currentQuestionIndex >= currentVocabulary.length) {
-                endGame(); // Se todas as palavras foram respondidas, finaliza o jogo
-            } else {
-                loadQuestion(currentQuestionIndex); // Carrega a próxima questão (currentQuestionIndex será o novo displayIndex)
-            }
-            
-            // Reabilita os botões e input para a próxima questão ou fim de jogo
-            // Isso é feito no loadQuestion, mas para garantir
-            answerInput.disabled = false;
-            submitButton.disabled = false;
-            hintButton.disabled = false;
-            skipButton.disabled = false;
-            stopGameButton.disabled = false;
+            // Pequena pausa usando Promise
+            new Promise(resolve => setTimeout(resolve, 1500))
+                .then(() => {
+                    if (currentQuestionIndex >= currentVocabulary.length) {
+                        endGame();
+                    } else {
+                        loadQuestion(currentQuestionIndex);
+                    }
+                    
+                    answerInput.disabled = false;
+                    submitButton.disabled = false;
+                    hintButton.disabled = false;
+                    skipButton.disabled = false;
+                    stopGameButton.disabled = false;
+                });
         }
 
-        // Exibe uma dica para a palavra atual
         function provideHint() {
-            if (isReviewMode) return; // Não permitir dicas em modo de revisão
+            if (isReviewMode) return;
 
-            hintUsedForCurrentQuestion = true; // Marca que a dica foi usada para esta questão
+            hintUsedForCurrentQuestion = true;
             hintLevel++;
 
             const correctEnglishWord = currentWord.english;
@@ -635,28 +628,26 @@
                     hintButton.disabled = true;
                 }
             } else if (hintLevel > 2 && hintLevel <= wordLength + 1) {
-                // Revela mais uma letra por dica, até revelar a palavra toda
                 let partialWord = "";
                 for (let i = 0; i < hintLevel - 1; i++) {
                     if (i < wordLength) {
                         partialWord += correctEnglishWord[i];
                     }
                 }
-                hintDisplay.textContent = `Dica: ${partialWord}${'_'.repeat(wordLength - (hintLevel - 1))}`; // Ex: "App___"
-                if (hintLevel - 1 === wordLength) { // Se revelou a palavra toda
+                hintDisplay.textContent = `Dica: ${partialWord}${'_'.repeat(wordLength - (hintLevel - 1))}`;
+                if (hintLevel - 1 === wordLength) {
                     hintButton.disabled = true;
                 }
             } else {
                 hintDisplay.textContent = "Você já usou todas as dicas.";
-                hintButton.disabled = true; // Desabilita o botão de dica se não houver mais dicas
+                hintButton.disabled = true;
             }
-            answerInput.focus(); // Mantém o foco no input
+            answerInput.focus();
         }
 
-
-        // Pula a questão atual
-        async function skipQuestion() {
-            if (isReviewMode) return; // Não permitir pular em modo de revisão
+        // Pula a questão atual (usando Promises)
+        function skipQuestion() {
+            if (isReviewMode) return;
 
             answerInput.disabled = true;
             submitButton.disabled = true;
@@ -665,40 +656,40 @@
             stopGameButton.disabled = true;
 
             feedbackMessage.textContent = `Questão pulada. O correto era: "${currentWord.english}"`;
-            feedbackMessage.style.color = '#f6ad55'; // Cor de aviso para pulado
+            feedbackMessage.style.color = '#f6ad55';
 
             answeredQuestions.push({
                 originalWord: { ...currentWord },
-                userAnswer: answerInput.value, // Armazena o que foi digitado antes de pular
-                isCorrect: false, // Considerada incorreta
-                usedHint: hintUsedForCurrentQuestion, // Se a dica foi usada antes de pular
-                isSkipped: true, // Marcada como pulada
+                userAnswer: answerInput.value,
+                isCorrect: false,
+                usedHint: hintUsedForCurrentQuestion,
+                isSkipped: true,
                 correctAnswer: currentWord.english
             });
 
-            currentQuestionIndex++; // Avança para a próxima questão na sequência do jogo
+            currentQuestionIndex++;
+            console.log(`[skipQuestion] currentQuestionIndex após pular: ${currentQuestionIndex}`);
 
-            await new Promise(resolve => setTimeout(resolve, 1500)); // Pequena pausa
 
-            if (currentQuestionIndex >= currentVocabulary.length) {
-                endGame(); // Se todas as palavras foram processadas, finaliza o jogo
-            } else {
-                loadQuestion(currentQuestionIndex); // Carrega a próxima questão (currentQuestionIndex será o novo displayIndex)
-            }
-            
-            // Reabilita os botões e input para a próxima questão ou fim de jogo
-            // Isso é feito no loadQuestion, mas para garantir
-            answerInput.disabled = false;
-            submitButton.disabled = false;
-            hintButton.disabled = false;
-            skipButton.disabled = false;
-            stopGameButton.disabled = false;
+            new Promise(resolve => setTimeout(resolve, 1500))
+                .then(() => {
+                    if (currentQuestionIndex >= currentVocabulary.length) {
+                        endGame();
+                    } else {
+                        loadQuestion(currentQuestionIndex);
+                    }
+                    
+                    answerInput.disabled = false;
+                    submitButton.disabled = false;
+                    hintButton.disabled = false;
+                    skipButton.disabled = false;
+                    stopGameButton.disabled = false;
+                });
         }
 
         // --- Funções do Modal de Confirmação ---
         function showConfirmModal() {
             confirmModal.classList.remove('hidden');
-            // Desabilita interação com o jogo enquanto o modal está aberto
             answerInput.disabled = true;
             submitButton.disabled = true;
             hintButton.disabled = true;
@@ -708,87 +699,82 @@
 
         function hideConfirmModal() {
             confirmModal.classList.add('hidden');
-            // Reabilita interação com o jogo
-            if (!isReviewMode) { // Apenas se não estivermos já no modo revisão
+            if (!isReviewMode) {
                 answerInput.disabled = false;
                 submitButton.disabled = false;
                 hintButton.disabled = false;
                 skipButton.disabled = false;
                 stopGameButton.disabled = false;
             }
-            answerInput.focus(); // Retorna o foco para o input
+            answerInput.focus();
         }
         // --- Fim das Funções do Modal de Confirmação ---
 
-
-        // Navega para a questão anterior em modo de revisão
         function goToPreviousQuestion() {
+            console.log(`[goToPreviousQuestion] Chamado. displayIndex=${displayIndex}`);
             if (displayIndex > 0) {
                 displayIndex--;
                 loadQuestion(displayIndex);
             }
         }
 
-        // Navega para a próxima questão em modo de revisão ou volta ao jogo ativo
         function goToNextQuestion() {
-            // Se estamos no modo de revisão e não é a última pergunta respondida
+            console.log(`[goToNextQuestion] Chamado. displayIndex=${displayIndex}, currentQuestionIndex=${currentQuestionIndex}, answeredQuestions.length=${answeredQuestions.length}`);
+
+            // Se estamos no modo de revisão e não é a última pergunta respondida em answeredQuestions
             if (displayIndex < answeredQuestions.length - 1) {
                 displayIndex++;
                 loadQuestion(displayIndex);
             } 
-            // Se estamos na última pergunta respondida (no modo de revisão) e ainda há perguntas não respondidas no jogo
+            // Se estamos na última pergunta respondida (em revisão) E ainda há perguntas não respondidas no jogo
             else if (displayIndex === answeredQuestions.length - 1 && currentQuestionIndex < currentVocabulary.length) {
-                 // Transita do modo de revisão para o modo de jogo ativo
-                 isReviewMode = false;
-                 displayIndex = currentQuestionIndex; // Define o displayIndex para a próxima questão ainda não respondida
+                 isReviewMode = false; // Mudar para o modo de jogo ativo
+                 displayIndex = currentQuestionIndex; // Vai para a próxima questão ainda não respondida
                  loadQuestion(displayIndex);
             }
-            // Se estamos na última pergunta respondida e todas as perguntas já foram processadas, não há para onde ir.
+            // Se já estamos na última pergunta processada (respondida/pulada) E não há mais palavras no vocabulário,
+            // ou seja, o jogo terminou completamente e estamos na última para revisão, não faz nada.
         }
 
         // Atualiza a visibilidade dos botões de navegação
         function updateNavigationButtons() {
-            // Os botões de navegação só são visíveis e funcionais no modo de revisão (incluindo a revisão final).
-            // Em jogo ativo, eles ficam escondidos.
+            console.log(`[updateNavigationButtons] displayIndex=${displayIndex}, currentQuestionIndex=${currentQuestionIndex}, answeredQuestions.length=${answeredQuestions.length}`);
 
-            if (isReviewMode) {
-                document.querySelector('.nav-buttons-container').classList.remove('hidden');
-                // Botão "Voltar" é visível se não estamos na primeira questão do modo de revisão
-                previousButton.classList.toggle('hidden', displayIndex === 0);
-                
-                // Botão "Próxima" é visível se:
-                // 1. Não estamos na última questão respondida no modo de revisão, OU
-                // 2. Estamos na última questão respondida no modo de revisão, mas ainda há questões a serem respondidas no jogo ativo.
-                const isAtLastAnsweredInReview = displayIndex === answeredQuestions.length - 1;
-                const allQuestionsProcessed = currentQuestionIndex >= currentVocabulary.length;
+            // O container de navegação deve ser visível se currentQuestionIndex for maior que 0
+            document.querySelector('.nav-buttons-container').classList.toggle('hidden', currentQuestionIndex === 0);
+            
+            // Botão "Voltar" é visível se não estamos na primeira questão exibida.
+            previousButton.classList.toggle('hidden', displayIndex === 0);
+            console.log(`[updateNavigationButtons] Previous button hidden? ${previousButton.classList.contains('hidden')}`);
 
-                nextButton.classList.toggle('hidden', isAtLastAnsweredInReview && allQuestionsProcessed);
+            // Botão "Próxima" é visível se:
+            // 1. Não estamos na última questão do array de answeredQuestions (podemos ir para a próxima revisada), OU
+            // 2. Estamos na última questão do array de answeredQuestions E AINDA HÁ
+            //    questões no jogo que não foram apresentadas (currentQuestionIndex < currentVocabulary.length)
+            
+            const isAtLastAnsweredInReview = displayIndex === answeredQuestions.length - 1;
+            const allQuestionsProcessedInGame = currentQuestionIndex >= currentVocabulary.length;
 
-            } else {
-                document.querySelector('.nav-buttons-container').classList.add('hidden');
-            }
+            nextButton.classList.toggle('hidden', isAtLastAnsweredInReview && allQuestionsProcessedInGame);
+            console.log(`[updateNavigationButtons] Next button hidden? ${nextButton.classList.contains('hidden')}`);
         }
 
         // Finaliza o jogo e mostra o resultado detalhado
         function endGame() {
             gameQuizScreen.classList.add('hidden');
             gameEndScreen.classList.remove('hidden');
-            finalStats.classList.remove('hidden'); // Garante que as estatísticas são visíveis
+            finalStats.classList.remove('hidden');
 
-            // Esconder botões de ação quando o jogo termina
             submitButton.classList.add('hidden');
             hintButton.classList.add('hidden');
             skipButton.classList.add('hidden');
-            stopGameButton.classList.add('hidden'); // Esconde o botão Concluir
+            stopGameButton.classList.add('hidden');
             answerInput.classList.add('hidden');
-            hintDisplay.classList.add('hidden'); // Esconde dica ao final
+            hintDisplay.classList.add('hidden');
 
-            // Ativar modo de revisão no final do jogo
-            isReviewMode = true;
-            // Se houver questões respondidas, define displayIndex para a última para começar a revisão
+            isReviewMode = true; // Ativa o modo de revisão para a tela final
             displayIndex = answeredQuestions.length > 0 ? answeredQuestions.length - 1 : 0; 
             
-            // Calcular estatísticas detalhadas
             const totalAnswered = answeredQuestions.length;
             const correctNoHintCount = answeredQuestions.filter(q => q.isCorrect && !q.usedHint).length;
             const correctWithHintCount = answeredQuestions.filter(q => q.isCorrect && q.usedHint).length;
@@ -800,9 +786,9 @@
             correctWithHint.textContent = `Acertos (com dica): ${correctWithHintCount}`;
             incorrectAnswers.textContent = `Erros: ${incorrectCount}`;
             skippedWords.textContent = `Puladas: ${skippedCount}`;
-            finalScore.textContent = `Sua pontuação total é: ${score}!`; // Pontuação é o total de acertos (com ou sem dica)
+            finalScore.textContent = `Sua pontuação total é: ${score}!`;
 
-            incorrectAnswersList.innerHTML = ''; // Limpa a lista antes de preencher
+            incorrectAnswersList.innerHTML = '';
 
             const mistakesAndSkips = answeredQuestions.filter(item => !item.isCorrect || item.isSkipped);
 
@@ -820,7 +806,7 @@
                     incorrectAnswersList.appendChild(listItem);
                 });
             } else {
-                incorrectAnswersDisplay.classList.add('hidden'); // Esconde se não houver erros ou puladas
+                incorrectAnswersDisplay.classList.add('hidden');
             }
             loadQuestion(displayIndex); // Carrega a última questão para que a revisão comece da última
         }
@@ -831,7 +817,7 @@
         submitButton.addEventListener('click', checkAnswer);
         hintButton.addEventListener('click', provideHint);
         skipButton.addEventListener('click', skipQuestion);
-        stopGameButton.addEventListener('click', showConfirmModal); // Listener para o novo botão "Concluir"
+        stopGameButton.addEventListener('click', showConfirmModal);
 
         previousButton.addEventListener('click', goToPreviousQuestion);
         nextButton.addEventListener('click', goToNextQuestion);
@@ -839,9 +825,9 @@
         // Listeners para o modal de confirmação
         confirmYesButton.addEventListener('click', () => {
             hideConfirmModal();
-            endGame(); // Finaliza o jogo se o usuário confirmar
+            endGame();
         });
-        confirmNoButton.addEventListener('click', hideConfirmModal); // Apenas esconde o modal
+        confirmNoButton.addEventListener('click', hideConfirmModal);
 
         // Permite enviar a resposta pressionando Enter
         answerInput.addEventListener('keypress', (e) => {
@@ -851,13 +837,15 @@
         });
 
         // Inicializa o jogo na tela inicial e carrega o vocabulário quando a página é carregada
-        window.onload = async () => {
+        window.addEventListener('load', () => {
             gameStartScreen.classList.remove('hidden');
-            gameQuizScreen.classList.add('hidden'); // Esconder por padrão
-            gameEndScreen.classList.add('hidden'); // Esconder por padrão
-            confirmModal.classList.add('hidden'); // Garante que o modal está escondido no início
-            await loadVocabularyFromGoogleSheet(); // Carrega o vocabulário ao iniciar a página
-        };
+            gameQuizScreen.classList.add('hidden');
+            gameEndScreen.classList.add('hidden');
+            confirmModal.classList.add('hidden');
+            
+            // Chama a função de carregamento que agora retorna uma Promise
+            loadVocabularyFromGoogleSheet();
+        });
     </script>
 </body>
 </html>
