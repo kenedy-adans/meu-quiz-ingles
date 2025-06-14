@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz de Vocabulário (Digitar Resposta) - Versão 3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .quiz-container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .word-display {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a202c; /* Dark gray */
+            margin-bottom: 20px;
+        }
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .text-input {
+            padding: 12px 15px;
+            border: 2px solid #cbd5e0; /* Light gray border */
+            border-radius: 8px;
+            font-size: 1.1rem;
+            width: 100%;
+            box-sizing: border-box; /* Include padding in width */
+        }
+        .text-input:focus {
+            outline: none;
+            border-color: #4299e1; /* Blue on focus */
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5); /* Blue glow on focus */
+        }
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .submit-button, .hint-button, .skip-button, .start-button, .restart-button, .nav-button {
+            background-color: #4299e1; /* Blue */
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            border: none;
+            outline: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            flex-grow: 1; /* Allow buttons to grow and fill space */
+            max-width: 150px; /* Limit max width for larger screens */
+        }
+        .start-button, .restart-button {
+             background-color: #38b2ac; /* Teal */
+             font-size: 1.2rem;
+             font-weight: 700;
+             padding: 15px 25px;
+             max-width: 200px;
+        }
+        .skip-button {
+            background-color: #e53e3e; /* Red for skip */
+        }
+        .hint-button {
+            background-color: #f6ad55; /* Orange for hint */
+        }
+
+        .submit-button:hover, .start-button:hover, .restart-button:hover, .hint-button:hover, .skip-button:hover, .nav-button:hover {
+            filter: brightness(1.1); /* Slightly brighter on hover */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+        .submit-button:active, .start-button:active, .restart-button:active, .hint-button:active, .skip-button:active, .nav-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .submit-button.correct {
+            background-color: #48bb78; /* Green */
+        }
+        .submit-button.incorrect {
+            background-color: #ef4444; /* Red */
+        }
+        .feedback-message {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-top: 20px;
+            min-height: 30px; /* Reserve space for message */
+        }
+        .hint-display {
+            font-size: 1rem;
+            color: #6b7280; /* Gray */
+            margin-top: 10px;
+            min-height: 20px;
+        }
+        .score-display {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2d3748; /* Gray-900 */
+            margin-top: 10px;
+        }
+        .nav-buttons-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .loading-message {
+            font-size: 1.2rem;
+            color: #4a5568;
+            margin-top: 20px;
+        }
+        .incorrect-answers-list {
+            text-align: left;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0; /* Light border */
+        }
+        .incorrect-answers-list h3 {
+            font-size: 1.5rem;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        .incorrect-answers-list ul {
+            list-style: none;
+            padding: 0;
+        }
+        .incorrect-answers-list li {
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-size: 1.1rem;
+        }
+        .incorrect-answers-list li strong {
+            color: #1a202c;
+        }
+        .end-game-stats p {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        @media (min-width: 640px) {
+            .action-buttons {
+                flex-direction: row; /* Horizontal on larger screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <h1 class="text-3xl font-bold text-gray-800">Quiz de Vocabulário (Digitar Resposta)</h1>
+        <div id="game-start-screen">
+            <p class="text-lg text-gray-600 mb-6">Teste seu conhecimento de vocabulário em inglês!</p>
+            <button id="startButton" class="start-button">Começar Jogo</button>
+            <div id="loadingMessage" class="loading-message hidden">Carregando vocabulário...</div>
+            <div id="errorMessage" class="loading-message hidden" style="color: #ef4444;"></div>
+        </div>
+
+        <div id="game-quiz-screen" class="hidden">
+            <p class="text-gray-700 text-lg mb-2">Qual a tradução em inglês de:</p>
+            <div id="wordDisplay" class="word-display"></div>
+            <div class="input-container">
+                <input type="text" id="answerInput" class="text-input" placeholder="Digite a tradução em inglês aqui">
+                <button id="submitButton" class="submit-button">Verificar</button>
+            </div>
+            <div id="hintDisplay" class="hint-display"></div>
+            <div id="feedbackMessage" class="feedback-message"></div>
+            <div id="scoreDisplay" class="score-display">Pontuação: 0</div>
+            
+            <div class="action-buttons">
+                <button id="hintButton" class="hint-button">Dica</button>
+                <button id="skipButton" class="skip-button">Pular</button>
+            </div>
+
+            <div class="nav-buttons-container hidden"> <!-- Hidden by default, only shown in review -->
+                <button id="previousButton" class="nav-button">Voltar</button>
+                <button id="nextButton" class="nav-button">Próxima</button>
+            </div>
+        </div>
+
+        <div id="game-end-screen" class="hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Fim do Jogo!</h2>
+            <div id="finalStats" class="end-game-stats">
+                <p id="totalQuestions"></p>
+                <p id="correctNoHint"></p>
+                <p id="correctWithHint"></p>
+                <p id="incorrectAnswers"></p>
+                <p id="skippedWords"></p>
+            </div>
+            <div id="incorrectAnswersDisplay" class="incorrect-answers-list hidden">
+                <h3>Palavras que você errou ou pulou:</h3>
+                <ul id="incorrectAnswersList">
+                    <!-- Erros e pulados serão listados aqui -->
+                </ul>
+            </div>
+            <button id="restartButton" class="restart-button">Jogar Novamente</button>
+        </div>
+    </div>
+
+    <script>
+        // Substitua este URL pelo URL CSV da sua planilha Google Sheets publicada
+        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJcIYOfXWlZ7-xu0_9UiCOqbx9th3m3h8Ved353D2VGXAxuizxdPTifsTetr3g2h30lW62vsgfP_w9/pub?output=csv'; 
+
+        const TYPO_TOLERANCE_THRESHOLD = 1; // Permite 1 erro de digitação para considerar correto
+
+        let vocabulary = []; // O array de vocabulário agora será preenchido dinamicamente
+        let currentVocabulary = []; 
+        let currentQuestionIndex = 0; // Index da próxima questão a ser apresentada/respondida
+        let displayIndex = 0; // Index da questão atualmente exibida (pode ser uma questão anterior para revisão)
+        let score = 0;
+        let currentWord = {};
+        let answeredQuestions = []; // Array para armazenar questões respondidas com seus resultados
+
+        let hintUsedForCurrentQuestion = false; // Flag para rastrear se a dica foi usada na questão atual
+        let hintLevel = 0; // 0: nenhuma dica, 1: número de letras, 2: primeira letra, etc.
+
+        // Referências a elementos DOM
+        const gameStartScreen = document.getElementById('game-start-screen');
+        const gameQuizScreen = document.getElementById('game-quiz-screen');
+        const gameEndScreen = document.getElementById('game-end-screen');
+        const startButton = document.getElementById('startButton');
+        const restartButton = document.getElementById('restartButton');
+        const submitButton = document.getElementById('submitButton');
+        const hintButton = document.getElementById('hintButton');
+        const skipButton = document.getElementById('skipButton');
+        const previousButton = document.getElementById('previousButton');
+        const nextButton = document.getElementById('nextButton');
+        const wordDisplay = document.getElementById('wordDisplay');
+        const answerInput = document.getElementById('answerInput');
+        const hintDisplay = document.getElementById('hintDisplay');
+        const feedbackMessage = document.getElementById('feedbackMessage');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const finalStats = document.getElementById('finalStats');
+        const totalQuestions = document.getElementById('totalQuestions');
+        const correctNoHint = document.getElementById('correctNoHint');
+        const correctWithHint = document.getElementById('correctWithHint');
+        const incorrectAnswers = document.getElementById('incorrectAnswers');
+        const skippedWords = document.getElementById('skippedWords');
+        const incorrectAnswersDisplay = document.getElementById('incorrectAnswersDisplay');
+        const incorrectAnswersList = document.getElementById('incorrectAnswersList');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Função para calcular a Distância de Levenshtein (tolerância a erros de digitação)
+        function levenshteinDistance(s1, s2) {
+            s1 = String(s1); // Garante que s1 é string
+            s2 = String(s2); // Garante que s2 é string
+
+            const m = s1.length;
+            const n = s2.length;
+            const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(null));
+
+            for (let i = 0; i <= m; i++) {
+                dp[i][0] = i;
+            }
+            for (let j = 0; j <= n; j++) {
+                dp[0][j] = j;
+            }
+
+            for (let i = 1; i <= m; i++) {
+                for (let j = 1; j <= n; j++) {
+                    const cost = (s1[i - 1] === s2[j - 1]) ? 0 : 1;
+                    dp[i][j] = Math.min(
+                        dp[i - 1][j] + 1,      // Deletion
+                        dp[i][j - 1] + 1,      // Insertion
+                        dp[i - 1][j - 1] + cost // Substitution
+                    );
+                }
+            }
+            return dp[m][n];
+        }
+
+        // Função para embaralhar um array (Fisher-Yates shuffle)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // Troca elementos
+            }
+            return array;
+        }
+
+        // Função para carregar vocabulário da planilha Google Sheets
+        async function loadVocabularyFromGoogleSheet() {
+            loadingMessage.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            startButton.disabled = true; // Desabilita o botão enquanto carrega
+
+            try {
+                const response = await fetch(GOOGLE_SHEET_CSV_URL);
+                if (!response.ok) {
+                    throw new Error(`Erro ao carregar a planilha: ${response.statusText}`);
+                }
+                const csvText = await response.text();
+                vocabulary = parseCSV(csvText);
+
+                if (vocabulary.length === 0) {
+                    throw new Error("Nenhum dado de vocabulário encontrado na planilha. Verifique se as colunas estão corretas ou se há dados.");
+                }
+                startButton.disabled = false; // Habilita o botão se o carregamento for bem-sucedido
+                loadingMessage.classList.add('hidden');
+
+            } catch (error) {
+                console.error("Falha ao carregar vocabulário:", error);
+                loadingMessage.classList.add('hidden');
+                errorMessage.textContent = `Erro ao carregar vocabulário: ${error.message}. Verifique o URL da planilha.`;
+                errorMessage.classList.remove('hidden');
+            }
+        }
+
+        // Função para analisar o texto CSV
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            const parsedVocabulary = [];
+            
+            // Ignora a primeira linha (cabeçalho)
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line) {
+                    // Divide a linha por vírgula. Lida com aspas duplas para campos com vírgula.
+                    const parts = line.match(/(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|([^,]+))/g);
+
+                    if (parts && parts.length >= 2) {
+                        const english = parts[0].replace(/"/g, '').trim(); // Remove aspas
+                        const portuguese = parts[1].replace(/"/g, '').trim(); // Remove aspas
+                        
+                        if (english && portuguese) { // Garante que ambos os campos não estão vazios
+                            parsedVocabulary.push({ english, portuguese });
+                        }
+                    }
+                }
+            }
+            return parsedVocabulary;
+        }
+
+        // Inicia o jogo
+        function startGame() {
+            if (vocabulary.length === 0) {
+                errorMessage.textContent = "Vocabulário não carregado. Tente novamente ou verifique a planilha.";
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+
+            score = 0;
+            currentQuestionIndex = 0;
+            displayIndex = 0;
+            answeredQuestions = [];
+            currentVocabulary = shuffleArray([...vocabulary]); // Embaralha o vocabulário para cada jogo
+            scoreDisplay.textContent = `Pontuação: ${score}`;
+            feedbackMessage.textContent = '';
+            hintDisplay.textContent = ''; // Limpa a dica
+
+            gameStartScreen.classList.add('hidden');
+            gameQuizScreen.classList.remove('hidden');
+            gameEndScreen.classList.add('hidden');
+            incorrectAnswersDisplay.classList.add('hidden');
+
+            // Garante que os botões de ação e campo de input estão visíveis e habilitados
+            submitButton.classList.remove('hidden');
+            hintButton.classList.remove('hidden');
+            skipButton.classList.remove('hidden');
+            answerInput.classList.remove('hidden');
+            answerInput.disabled = false;
+            hintButton.disabled = false; // Reabilita a dica para o novo jogo
+
+            // Esconde botões de navegação ao iniciar um novo jogo
+            previousButton.classList.add('hidden');
+            nextButton.classList.add('hidden');
+            finalStats.classList.add('hidden'); // Esconde as estatísticas finais ao reiniciar
+
+            loadQuestion(displayIndex);
+        }
+
+        // Carrega uma questão com base no índice
+        function loadQuestion(index) {
+            if (index >= currentVocabulary.length) {
+                endGame();
+                return;
+            }
+
+            displayIndex = index;
+            currentWord = currentVocabulary[displayIndex];
+            wordDisplay.textContent = currentWord.portuguese; // Mostra a palavra em português
+            answerInput.value = ''; // Limpa o campo de input
+            answerInput.focus(); // Foca no campo para digitação
+            feedbackMessage.textContent = ''; // Limpa feedback
+            hintDisplay.textContent = ''; // Limpa a dica
+
+            // Resetar flag de dica e nível de dica para a nova questão
+            hintUsedForCurrentQuestion = false;
+            hintLevel = 0;
+            hintButton.disabled = false; // Habilita o botão de dica
+
+            // Lida com o estado dos botões de ação e campo de input
+            const isAnswered = displayIndex < answeredQuestions.length;
+            if (isAnswered) {
+                // Modo de revisão
+                const answeredData = answeredQuestions[displayIndex];
+                answerInput.value = answeredData.userAnswer; // Mostra a resposta do usuário
+                answerInput.disabled = true; // Desabilita input em revisão
+                submitButton.classList.add('hidden'); // Esconde botão de verificar
+                hintButton.classList.add('hidden'); // Esconde botão de dica
+                skipButton.classList.add('hidden'); // Esconde botão de pular
+
+                if (answeredData.isSkipped) {
+                    feedbackMessage.textContent = `Você pulou esta palavra. O correto era: "${answeredData.correctAnswer}"`;
+                    feedbackMessage.style.color = '#f6ad55'; // Laranja para pulado
+                } else if (answeredData.isCorrect) {
+                    if (answeredData.usedHint) {
+                         feedbackMessage.textContent = `Correto (com dica)! Sua resposta: "${answeredData.userAnswer}"`;
+                    } else {
+                         feedbackMessage.textContent = `Correto! Sua resposta: "${answeredData.userAnswer}"`;
+                    }
+                    feedbackMessage.style.color = '#48bb78';
+                } else {
+                    feedbackMessage.textContent = `Incorreto! Sua resposta: "${answeredData.userAnswer}". O correto era: "${answeredData.correctAnswer}"`;
+                    feedbackMessage.style.color = '#ef4444';
+                }
+
+                // Mostrar os botões de navegação no modo de revisão
+                previousButton.classList.remove('hidden');
+                nextButton.classList.remove('hidden');
+
+            } else {
+                // Modo de jogo normal (nova questão)
+                answerInput.disabled = false;
+                submitButton.classList.remove('hidden');
+                hintButton.classList.remove('hidden');
+                skipButton.classList.remove('hidden');
+                // Esconder botões de navegação durante o jogo
+                previousButton.classList.add('hidden');
+                nextButton.classList.add('hidden');
+            }
+
+            updateNavigationButtons();
+        }
+
+        // Função para normalizar strings para comparação (ignorar maiúsculas/minúsculas, acentos, espaços extras)
+        function normalizeString(str) {
+            if (typeof str !== 'string') return ''; // Garante que é uma string
+            return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        }
+
+        // Verifica a resposta do usuário no modo de digitação
+        async function checkAnswer() {
+            const userAnswer = answerInput.value; // Pega a resposta original do usuário
+            const normalizedUserAnswer = normalizeString(userAnswer);
+            const normalizedCorrectAnswer = normalizeString(currentWord.english); // Tradução em inglês
+
+            let isCorrect = false;
+            let feedbackText = '';
+
+            // Perfeita correspondência
+            if (normalizedUserAnswer === normalizedCorrectAnswer) {
+                isCorrect = true;
+                feedbackText = 'Correto!';
+            } else {
+                // Tolerância a erros de digitação (fuzzy matching)
+                const distance = levenshteinDistance(normalizedUserAnswer, normalizedCorrectAnswer);
+                if (distance > 0 && distance <= TYPO_TOLERANCE_THRESHOLD) {
+                    isCorrect = true;
+                    feedbackText = `Correto (com pequena diferença)! O correto era: "${currentWord.english}"`;
+                } else {
+                    feedbackText = `Incorreto! O correto era: "${currentWord.english}"`;
+                }
+            }
+            
+            // Aplica a cor do feedback
+            if (isCorrect) {
+                score++;
+                feedbackMessage.style.color = '#48bb78'; // Verde
+            } else {
+                feedbackMessage.style.color = '#ef4444'; // Vermelho
+            }
+            feedbackMessage.textContent = feedbackText;
+            scoreDisplay.textContent = `Pontuação: ${score}`;
+
+            // Desabilita input e botões de ação após submeter
+            answerInput.disabled = true;
+            submitButton.disabled = true;
+            hintButton.disabled = true;
+            skipButton.disabled = true;
+
+            answeredQuestions.push({
+                originalWord: { ...currentWord },
+                userAnswer: userAnswer, // Armazena a resposta original do usuário
+                isCorrect: isCorrect,
+                usedHint: hintUsedForCurrentQuestion, // Salva se a dica foi usada
+                isSkipped: false, // Não foi pulada
+                correctAnswer: currentWord.english
+            });
+
+            currentQuestionIndex++;
+            displayIndex = currentQuestionIndex;
+
+            await new Promise(resolve => setTimeout(resolve, 1500)); // Pequena pausa
+
+            loadQuestion(displayIndex); // Carrega a próxima questão
+            // Reabilita os botões e input para a próxima questão ou fim de jogo
+            answerInput.disabled = false;
+            submitButton.disabled = false;
+            hintButton.disabled = false;
+            skipButton.disabled = false;
+        }
+
+        // Exibe uma dica para a palavra atual
+        function provideHint() {
+            hintUsedForCurrentQuestion = true; // Marca que a dica foi usada para esta questão
+            hintLevel++;
+
+            const correctEnglishWord = currentWord.english;
+            const wordLength = correctEnglishWord.length;
+
+            if (hintLevel === 1) {
+                hintDisplay.textContent = `Dica: ${wordLength} letras.`;
+            } else if (hintLevel === 2) {
+                if (wordLength > 0) {
+                    hintDisplay.textContent = `Dica: Começa com "${correctEnglishWord[0].toUpperCase()}..."`;
+                } else {
+                    hintDisplay.textContent = "Dica: A palavra é muito curta para mais dicas.";
+                    hintButton.disabled = true;
+                }
+            } else if (hintLevel > 2 && hintLevel <= wordLength + 1) {
+                // Revela mais uma letra por dica, até revelar a palavra toda
+                let partialWord = "";
+                for (let i = 0; i < hintLevel - 1; i++) {
+                    if (i < wordLength) {
+                        partialWord += correctEnglishWord[i];
+                    }
+                }
+                hintDisplay.textContent = `Dica: ${partialWord}${'_'.repeat(wordLength - (hintLevel - 1))}`; // Ex: "App___"
+                if (hintLevel - 1 === wordLength) { // Se revelou a palavra toda
+                    hintButton.disabled = true;
+                }
+            } else {
+                hintDisplay.textContent = "Você já usou todas as dicas.";
+                hintButton.disabled = true; // Desabilita o botão de dica se não houver mais dicas
+            }
+            answerInput.focus(); // Mantém o foco no input
+        }
+
+
+        // Pula a questão atual
+        async function skipQuestion() {
+            answerInput.disabled = true;
+            submitButton.disabled = true;
+            hintButton.disabled = true;
+            skipButton.disabled = true;
+
+            feedbackMessage.textContent = `Questão pulada. O correto era: "${currentWord.english}"`;
+            feedbackMessage.style.color = '#f6ad55'; // Cor de aviso para pulado
+
+            answeredQuestions.push({
+                originalWord: { ...currentWord },
+                userAnswer: answerInput.value, // Armazena o que foi digitado antes de pular
+                isCorrect: false, // Considerada incorreta
+                usedHint: hintUsedForCurrentQuestion, // Se a dica foi usada antes de pular
+                isSkipped: true, // Marcada como pulada
+                correctAnswer: currentWord.english
+            });
+
+            currentQuestionIndex++;
+            displayIndex = currentQuestionIndex;
+
+            await new Promise(resolve => setTimeout(resolve, 1500)); // Pequena pausa
+
+            loadQuestion(displayIndex);
+            // Reabilita os botões e input para a próxima questão ou fim de jogo
+            answerInput.disabled = false;
+            submitButton.disabled = false;
+            hintButton.disabled = false;
+            skipButton.disabled = false;
+        }
+
+        // Navega para a questão anterior em modo de revisão
+        function goToPreviousQuestion() {
+            if (displayIndex > 0) {
+                displayIndex--;
+                loadQuestion(displayIndex);
+            }
+        }
+
+        // Navega para a próxima questão em modo de revisão ou continua o jogo
+        function goToNextQuestion() {
+            if (displayIndex < answeredQuestions.length) { // Só pode navegar para frente nas respondidas
+                displayIndex++;
+                loadQuestion(displayIndex);
+            } else if (displayIndex === answeredQuestions.length && answeredQuestions.length < currentVocabulary.length) {
+                // Se estiver na última respondida e houver mais para responder
+                displayIndex++; // Avança para a próxima não respondida
+                loadQuestion(displayIndex);
+            } else {
+                // Se estiver na última respondida e não houver mais para responder, ou já está no fim
+                // Não faz nada ou volta para o endGame
+            }
+        }
+
+        // Atualiza a visibilidade dos botões de navegação
+        function updateNavigationButtons() {
+            // Mostrar botões de navegação apenas no modo de revisão (após o jogo ter começado e ter perguntas respondidas)
+            if (answeredQuestions.length > 0 && gameQuizScreen.classList.contains('hidden') && gameEndScreen.classList.contains('hidden')) {
+                // Se estamos na tela de início, não mostramos os botões de navegação de revisão
+                previousButton.classList.add('hidden');
+                nextButton.classList.add('hidden');
+            } else if (gameEndScreen.classList.contains('hidden')) { // Estamos na tela do quiz (jogando ou revisando)
+                 previousButton.classList.toggle('hidden', displayIndex === 0);
+                 nextButton.classList.toggle('hidden', displayIndex === currentQuestionIndex && answeredQuestions.length === currentQuestionIndex);
+            } else { // Estamos na tela de fim de jogo (revisão final)
+                previousButton.classList.toggle('hidden', displayIndex === 0);
+                nextButton.classList.toggle('hidden', displayIndex >= answeredQuestions.length - 1);
+            }
+        }
+
+        // Finaliza o jogo e mostra o resultado detalhado
+        function endGame() {
+            gameQuizScreen.classList.add('hidden');
+            gameEndScreen.classList.remove('hidden');
+            finalStats.classList.remove('hidden'); // Garante que as estatísticas são visíveis
+
+            // Esconder botões de ação quando o jogo termina
+            submitButton.classList.add('hidden');
+            hintButton.classList.add('hidden');
+            skipButton.classList.add('hidden');
+            answerInput.classList.add('hidden');
+            hintDisplay.classList.add('hidden'); // Esconde dica ao final
+
+            // Mostrar botões de navegação para revisão no final do jogo
+            previousButton.classList.remove('hidden');
+            nextButton.classList.remove('hidden');
+            displayIndex = answeredQuestions.length > 0 ? answeredQuestions.length - 1 : 0; // Vai para a última pergunta respondida para revisão
+
+            // Calcular estatísticas detalhadas
+            const totalAnswered = answeredQuestions.length;
+            const correctNoHintCount = answeredQuestions.filter(q => q.isCorrect && !q.usedHint).length;
+            const correctWithHintCount = answeredQuestions.filter(q => q.isCorrect && q.usedHint).length;
+            const incorrectCount = answeredQuestions.filter(q => !q.isCorrect && !q.isSkipped).length;
+            const skippedCount = answeredQuestions.filter(q => q.isSkipped).length;
+
+            totalQuestions.textContent = `Total de Palavras Tentadas: ${totalAnswered}`;
+            correctNoHint.textContent = `Acertos (sem dica): ${correctNoHintCount}`;
+            correctWithHint.textContent = `Acertos (com dica): ${correctWithHintCount}`;
+            incorrectAnswers.textContent = `Erros: ${incorrectCount}`;
+            skippedWords.textContent = `Puladas: ${skippedCount}`;
+            finalScore.textContent = `Sua pontuação total é: ${score}!`; // Pontuação é o total de acertos (com ou sem dica)
+
+            incorrectAnswersList.innerHTML = ''; // Limpa a lista antes de preencher
+
+            const mistakesAndSkips = answeredQuestions.filter(item => !item.isCorrect || item.isSkipped);
+
+            if (mistakesAndSkips.length > 0) {
+                incorrectAnswersDisplay.classList.remove('hidden');
+                mistakesAndSkips.forEach(item => {
+                    const listItem = document.createElement('li');
+                    let statusText = "";
+                    if (item.isSkipped) {
+                        statusText = `(Pulada) O correto era: "${item.correctAnswer}"`;
+                    } else if (!item.isCorrect) {
+                        statusText = `Sua resposta: "${item.userAnswer}" (Correto: "${item.correctAnswer}")`;
+                    }
+                    listItem.innerHTML = `<strong>"${item.originalWord.portuguese}"</strong> - ${statusText}`;
+                    incorrectAnswersList.appendChild(listItem);
+                });
+            } else {
+                incorrectAnswersDisplay.classList.add('hidden'); // Esconde se não houver erros ou puladas
+            }
+            updateNavigationButtons(); // Atualiza botões de navegação para a revisão final
+            loadQuestion(displayIndex); // Carrega a última questão para que a revisão comece da última
+        }
+
+        // Adiciona listeners de evento para botões
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', startGame);
+        submitButton.addEventListener('click', checkAnswer);
+        hintButton.addEventListener('click', provideHint);
+        skipButton.addEventListener('click', skipQuestion);
+        previousButton.addEventListener('click', goToPreviousQuestion);
+        nextButton.addEventListener('click', goToNextQuestion);
+
+        // Permite enviar a resposta pressionando Enter
+        answerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !answerInput.disabled) {
+                checkAnswer();
+            }
+        });
+
+        // Inicializa o jogo na tela inicial e carrega o vocabulário quando a página é carregada
+        window.onload = async () => {
+            gameStartScreen.classList.remove('hidden');
+            gameQuizScreen.classList.add('hidden'); // Esconder por padrão
+            gameEndScreen.classList.add('hidden'); // Esconder por padrão
+            await loadVocabularyFromGoogleSheet(); // Carrega o vocabulário ao iniciar a página
+        };
+    </script>
+</body>
+</html>
